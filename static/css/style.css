@@ -1,0 +1,40 @@
+body {
+  background-color: #f4f6f9;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.navbar {
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.card {
+  border-radius: 10px;
+  border: none;
+}
+
+.card.shadow-sm {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+}
+
+.nav-tabs .nav-link {
+  color: #555;
+}
+
+.nav-tabs .nav-link.active {
+  font-weight: 600;
+  color: #0d6efd;
+}
+
+.table th {
+  font-size: 0.85rem;
+  letter-spacing: 0.03em;
+}
+
+.btn-sm {
+  font-size: 0.78rem;
+}
+
+.toast {
+  min-width: 220px;
+  font-size: 0.9rem;
+}
