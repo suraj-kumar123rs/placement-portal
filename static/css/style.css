@@ -38,3 +38,22 @@ body {
   min-width: 220px;
   font-size: 0.9rem;
 }
+
+.demo-box {
+  background: #f0f6ff;
+  border: 1px dashed #9ec5fe;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.dev-credit {
+  text-align: center;
+  font-size: 0.78rem;
+  color: #888;
+  padding: 24px 0 16px;
+}
+
+.dev-credit a {
+  color: #0d6efd;
+  text-decoration: none;
+}
