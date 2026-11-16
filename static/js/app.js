@@ -67,6 +67,11 @@ createApp({
       }
     },
 
+    async demoLogin(email, password) {
+      this.loginForm = { email, password };
+      await this.doLogin();
+    },
+
     async doLogin() {
       this.authError = '';
       const r = await this.api('/api/login', 'POST', this.loginForm);
