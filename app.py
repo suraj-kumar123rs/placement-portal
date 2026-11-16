@@ -1,11 +1,11 @@
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'placement-portal-secret-key-2024'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'placement-portal-secret-key-2024')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///placement.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -494,6 +494,60 @@ def update_profile():
 
 # ─────────────────────────── INIT DB ───────────────────────────
 
+def seed_demo_data():
+    """Fill an empty database with sample companies, drives, students and
+    applications so every role has something to show in the live demo."""
+    if Company.query.first():
+        return
+    def add_user(email, role):
+        u = User(email=email, password=generate_password_hash('demo123'), role=role)
+        db.session.add(u); db.session.flush()
+        return u
+
+    companies = [
+        ('company@demo.com', 'TechNova Solutions', 'hr@technova.com', 'https://technova.example', 'Product company building cloud analytics tools.', 'Approved'),
+        ('hr@datawave.com', 'DataWave Analytics', 'talent@datawave.com', 'https://datawave.example', 'Data science consulting for retail and finance.', 'Approved'),
+        ('hr@greenbyte.com', 'GreenByte Systems', 'jobs@greenbyte.com', 'https://greenbyte.example', 'IoT startup working on smart energy meters.', 'Pending'),
+    ]
+    co_objs = []
+    for email, name, hr, web, desc, status in companies:
+        u = add_user(email, 'company')
+        c = Company(user_id=u.id, name=name, hr_contact=hr, website=web, description=desc, approval_status=status)
+        db.session.add(c); db.session.flush(); co_objs.append(c)
+
+    soon = lambda days: datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=days)
+    drives = [
+        (co_objs[0], 'Software Engineer Intern', 'Work on Flask APIs and Vue dashboards.', 'CSE', 7.0, 3, 30, 'Approved'),
+        (co_objs[0], 'Frontend Developer', 'Build responsive UIs with Vue 3.', 'CSE', 6.5, 4, 45, 'Approved'),
+        (co_objs[1], 'Data Analyst Intern', 'SQL, Python and dashboarding for client projects.', 'DS', 7.5, 3, 20, 'Approved'),
+        (co_objs[1], 'ML Engineer Intern', 'Train and deploy classical ML models.', 'DS', 8.0, 3, 25, 'Pending'),
+    ]
+    dr_objs = []
+    for co, title, desc, branch, cgpa, year, days, status in drives:
+        d = PlacementDrive(company_id=co.id, job_title=title, job_description=desc, required_branch=branch,
+                           required_cgpa=cgpa, required_year=year, deadline=soon(days), status=status)
+        db.session.add(d); db.session.flush(); dr_objs.append(d)
+
+    students = [
+        ('student@demo.com', 'Aarav Sharma', 'CSE', 3, 8.4, '9876500001'),
+        ('priya@demo.com', 'Priya Verma', 'DS', 3, 8.9, '9876500002'),
+        ('rohan@demo.com', 'Rohan Gupta', 'CSE', 4, 7.2, '9876500003'),
+        ('sneha@demo.com', 'Sneha Iyer', 'DS', 3, 7.8, '9876500004'),
+    ]
+    st_objs = []
+    for email, name, branch, year, cgpa, phone in students:
+        u = add_user(email, 'student')
+        st = Student(user_id=u.id, name=name, branch=branch, year=year, cgpa=cgpa, phone=phone)
+        db.session.add(st); db.session.flush(); st_objs.append(st)
+
+    for st, dr, status in [(st_objs[0], dr_objs[0], 'Shortlisted'), (st_objs[0], dr_objs[2], 'Applied'),
+                           (st_objs[1], dr_objs[2], 'Selected'), (st_objs[2], dr_objs[1], 'Rejected'),
+                           (st_objs[3], dr_objs[2], 'Applied')]:
+        db.session.add(Application(student_id=st.id, drive_id=dr.id, status=status))
+    db.session.commit()
+    print("Demo data seeded")
+
+
 def init_db():
     with app.app_context():
         db.create_all()
@@ -508,7 +562,12 @@ def init_db():
             db.session.add(admin)
             db.session.commit()
             print("Admin created: admin@placement.com / admin123")
+        if os.environ.get('SEED_DEMO', '1') == '1':
+            seed_demo_data()
+
+
+# Runs on import too, so tables and the admin exist when started by gunicorn
+init_db()
 
 if __name__ == '__main__':
-    init_db()
-    app.run(debug=True, port=5000)
+    app.run(debug=os.environ.get('FLASK_DEBUG') == '1', port=int(os.environ.get('PORT', 5000)))
